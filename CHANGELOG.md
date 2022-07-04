@@ -1,6 +1,6 @@
-## 0.0.2
+## 0.0.3
 
-* Export Response, Request from http package.
+* Export http package
 
 ## 0.0.1
 
