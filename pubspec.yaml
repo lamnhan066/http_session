@@ -1,5 +1,5 @@
 name: http_session
-description: Easier to manage the sessions when using http to requests.
+description: This plugin helps you easier to manage the sessions when using http to requests.
 version: 0.0.3
 homepage: https://github.com/vursin/http_session
 
