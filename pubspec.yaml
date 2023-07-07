@@ -1,13 +1,13 @@
 name: http_session
 description: This plugin helps you easier to manage the sessions when using http to requests.
-version: 0.0.3
-homepage: https://github.com/vursin/http_session
+version: 0.1.0
+homepage: https://github.com/vnniz/http_session
 
 environment:
-  sdk: ">=2.12.0 <3.0.0"
+  sdk: ">=2.18.0 <4.0.0"
 
 dependencies:
-  http: ^0.13.4
+  http: ^1.1.0
 
 dev_dependencies:
   lints: ^2.0.0
