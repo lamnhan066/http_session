@@ -12,12 +12,14 @@ Use shared session across the application
 
 ```dart
 final httpSession = HttpSession.shared;
+httpSession.debugLog = true;
+httpSession.maxRedirects = 5;
 ```
 
 Or create a new session instance
 
 ``` dart
-final httpSession = HttpSession();
+final httpSession = HttpSession(debugLog: true, maxRedirects: 5);
 ```
 
 Now you can requests any URI and the plugin will automatically save the session.
@@ -39,7 +41,7 @@ Close the current http and also clear the session
 httpSession.close();
 ```
 
-Get current session headers:
+Get current session cookie header:
 
 ``` dart
 final headers = httpSession.headers;

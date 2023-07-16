@@ -2,18 +2,18 @@ import 'package:http_session/http_session.dart';
 import 'package:test/test.dart';
 
 /// TODO: Add test server
-const testURL = 'https://raddle.me/login';
-
+final testURI = Uri.parse('https://raddle.me/login');
 void main() {
+  // Set the debug log to true
+  HttpSession.shared.debugLog = true;
+  HttpSession.shared.maxRedirects = 5;
+
   test('Http Session', () async {
     expect(HttpSession.shared.headers, isEmpty);
 
-    // await HttpSession.shared.post(Uri.parse(testURL));
+    await HttpSession.shared.get(testURI);
 
-    // expect(HttpSession.shared.headers, isNotEmpty);
-
-    await HttpSession.shared.get(Uri.parse(testURL));
-
+    print('Final cookie: ${HttpSession.shared.headers}');
     expect(HttpSession.shared.headers, isNotEmpty);
 
     HttpSession.shared.close();

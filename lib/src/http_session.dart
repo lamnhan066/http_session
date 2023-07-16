@@ -1,20 +1,31 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
 import 'package:http_session/http_session.dart';
 
-class HttpSession implements IOClient {
+class HttpSession extends IOClient {
   /// Shared http session instance
   static final shared = HttpSession();
+
+  /// Allow printing the debug logs
+  bool debugLog = false;
+
+  /// Set this property to the maximum number of redirects to follow.
+  /// If this number is exceeded an error event will be added with a [RedirectException].
+  ///
+  /// The default value is 5.
+  int maxRedirects;
+
+  /// Count the redirection
+  int _redirectCounter = 0;
 
   /// Get current headers value
   Map<String, String> get headers => _headers;
 
   /// Create a new http session instance
-  HttpSession() {
+  HttpSession({this.debugLog = false, this.maxRedirects = 5}) {
     _httpDelegate = _ioClient();
   }
 
@@ -44,8 +55,15 @@ class HttpSession implements IOClient {
   @override
   Future<IOStreamedResponse> send(
     http.BaseRequest request,
-  ) =>
-      _send(request.method, request.url, request.headers);
+  ) async {
+    _getCookie(request.headers);
+    _print('Request: $request with cookie: ${request.headers}');
+
+    final response = await _httpDelegate.send(request);
+    _updateCookieHeaders(response.headers);
+    _print('Status code: ${response.statusCode}');
+    return response;
+  }
 
   @override
   Future<http.Response> delete(
@@ -53,38 +71,38 @@ class HttpSession implements IOClient {
     Map<String, String>? headers,
     Object? body,
     Encoding? encoding,
-  }) async {
-    return Response.fromStream(await _send(
+  }) {
+    return _send(
       'DELETE',
       url,
       headers,
       body,
       encoding,
-    ));
+    );
   }
 
   @override
   Future<http.Response> get(
     Uri url, {
     Map<String, String>? headers,
-  }) async {
-    return Response.fromStream(await _send(
+  }) {
+    return _send(
       'GET',
       url,
       headers,
-    ));
+    );
   }
 
   @override
   Future<http.Response> head(
     Uri url, {
     Map<String, String>? headers,
-  }) async {
-    return Response.fromStream(await _send(
+  }) {
+    return _send(
       'HEAD',
       url,
       headers,
-    ));
+    );
   }
 
   @override
@@ -93,14 +111,14 @@ class HttpSession implements IOClient {
     Map<String, String>? headers,
     Object? body,
     Encoding? encoding,
-  }) async {
-    return Response.fromStream(await _send(
+  }) {
+    return _send(
       'PATCH',
       url,
       headers,
       body,
       encoding,
-    ));
+    );
   }
 
   @override
@@ -109,14 +127,14 @@ class HttpSession implements IOClient {
     Map<String, String>? headers,
     Object? body,
     Encoding? encoding,
-  }) async {
-    return Response.fromStream(await _send(
+  }) {
+    return _send(
       'POST',
       url,
       headers,
       body,
       encoding,
-    ));
+    );
   }
 
   @override
@@ -125,65 +143,69 @@ class HttpSession implements IOClient {
     Map<String, String>? headers,
     Object? body,
     Encoding? encoding,
-  }) async {
-    return Response.fromStream(await _send(
+  }) {
+    return _send(
       'PUT',
       url,
       headers,
       body,
       encoding,
-    ));
+    );
   }
 
-  @override
-  Future<String> read(
-    Uri url, {
-    Map<String, String>? headers,
-  }) async {
-    final response = await get(url, headers: headers);
-    _checkResponseSuccess(url, response);
-    return response.body;
-  }
+  // @override
+  // Future<String> read(
+  //   Uri url, {
+  //   Map<String, String>? headers,
+  // }) async {
+  //   final response = await get(url, headers: headers);
+  //   _checkResponseSuccess(url, response);
+  //   return response.body;
+  // }
 
-  @override
-  Future<Uint8List> readBytes(
-    Uri url, {
-    Map<String, String>? headers,
-  }) async {
-    final response = await get(url, headers: headers);
-    _checkResponseSuccess(url, response);
-    return response.bodyBytes;
-  }
+  // @override
+  // Future<Uint8List> readBytes(
+  //   Uri url, {
+  //   Map<String, String>? headers,
+  // }) async {
+  //   final response = await get(url, headers: headers);
+  //   _checkResponseSuccess(url, response);
+  //   return response.bodyBytes;
+  // }
 
-  Future<IOStreamedResponse> _send(
+  Future<http.Response> _send(
     String method,
     Uri url,
     Map<String, String>? headers, [
     Object? body,
     Encoding? encoding,
   ]) async {
-    final tempRequest =
-        _tempRequest(method, url, _getCookie(headers), body, encoding);
-    tempRequest.followRedirects = false;
-
-    var result = await _httpDelegate.send(tempRequest);
-    _updateCookieHeaders(result.headers);
-
-    while (result.isRedirect) {
-      final location = result.headers[HttpHeaders.locationHeader]!;
-      final tempRequest = _tempRequest(
+    _redirectCounter = 0;
+    Uri uri = url;
+    IOStreamedResponse response;
+    while (true) {
+      final request = _tempRequest(
         method,
-        Uri.parse(location),
-        _getCookie(result.headers),
+        uri,
+        headers,
         body,
         encoding,
       );
-      tempRequest.followRedirects = false;
-      result = await _httpDelegate.send(tempRequest);
-      _updateCookieHeaders(result.headers);
+      request.followRedirects = false;
+      response = await send(request);
+
+      if (!response.isRedirect) break;
+
+      uri = Uri.parse(response.headers[HttpHeaders.locationHeader]!);
+      _print('Redirecting to: $uri...');
+
+      _redirectCounter++;
+      if (_redirectCounter > maxRedirects) {
+        return throw RedirectException("Redirect limit exceeded", []);
+      }
     }
 
-    return result;
+    return Response.fromStream(response);
   }
 
   /// Create a temporary [Request]
@@ -214,31 +236,33 @@ class HttpSession implements IOClient {
   }
 
   /// Add cookie to the request
-  Map<String, String> _getCookie(Map<String, String>? headers) {
-    if (headers != null) {
-      headers.addAll(_headers);
-    }
-    headers ??= _headers;
-    return headers;
+  void _getCookie(Map<String, String> headers) {
+    headers.addAll(_headers);
   }
 
   /// Update the cookie
   void _updateCookieHeaders(Map<String, String> headers) {
-    final String? rawCookie = headers['set-cookie'];
+    final String? rawCookie = headers[HttpHeaders.setCookieHeader];
     if (rawCookie != null) {
       final int index = rawCookie.indexOf(';');
-      _headers['cookie'] =
+      _headers[HttpHeaders.cookieHeader] =
           (index == -1) ? rawCookie : rawCookie.substring(0, index);
     }
   }
 
   /// Throws an error if [response] is not successful.
-  void _checkResponseSuccess(Uri url, Response response) {
-    if (response.statusCode < 400) return;
-    var message = 'Request to $url failed with status ${response.statusCode}';
-    if (response.reasonPhrase != null) {
-      message = '$message: ${response.reasonPhrase}';
-    }
-    throw ClientException('$message.', url);
+  // void _checkResponseSuccess(Uri url, Response response) {
+  //   if (response.statusCode < 400) return;
+  //   var message = 'Request to $url failed with status ${response.statusCode}';
+  //   if (response.reasonPhrase != null) {
+  //     message = '$message: ${response.reasonPhrase}';
+  //   }
+  //   throw ClientException('$message.', url);
+  // }
+
+  /// Print the debug logs
+  void _print(String log) {
+    if (!debugLog) return;
+    print(log);
   }
 }
