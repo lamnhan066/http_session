@@ -20,14 +20,6 @@ class HttpSession implements IOClient {
   late IOClient _httpDelegate;
   final Map<String, String> _headers = <String, String>{};
 
-  /// Avoid badCertificate error
-  IOClient _ioClient() {
-    final HttpClient ioc = HttpClient();
-    ioc.badCertificateCallback =
-        (X509Certificate cert, String host, int port) => true;
-    return IOClient(ioc);
-  }
-
   /// Clear the current session
   void clear() {
     _headers.clear();
