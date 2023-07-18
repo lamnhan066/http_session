@@ -19,8 +19,15 @@ httpSession.maxRedirects = 5;
 Or create a new session instance
 
 ``` dart
-final httpSession = HttpSession(debugLog: true, maxRedirects: 5);
+final httpSession = HttpSession(
+    client: HttpClient(), // Optional
+    acceptBadCertificate: false,
+    maxRedirects: 5,
+    debugLog: true,
+);
 ```
+
+Please notice that the `acceptBadCertificate` will override the default value of the `client` (means `client` parameter is `null`). This setting is to decide whether to accept a secure connection with a server certificate that cannot be authenticated by any of the trusted root certificates.
 
 Now you can requests any URI and the plugin will automatically save the session.
 

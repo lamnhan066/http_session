@@ -1,3 +1,8 @@
+## 0.2.0-rc.2
+
+* **[BREAKING CHANGE]** Decide whether to accept a connection that has bad certificate via `acceptBadCertificate` parameter. This value will be `false` by default since this version, so you need to change it to `true` if you need to accept the bad certificate like the old version.
+* You can modify the `HttpClient` when you create a new `HttpSession` via `client` parameter.
+
 ## 0.2.0-rc.1
 
 * Rewrite to support adding cookie to redirected URL.
