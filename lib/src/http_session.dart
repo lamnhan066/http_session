@@ -9,8 +9,18 @@ class HttpSession extends IOClient {
   /// Shared http session instance
   static final shared = HttpSession();
 
-  /// Allow printing the debug logs
-  bool debugLog = false;
+  /// Sets a value that will decide whether to accept a secure connection
+  /// with a server certificate that cannot be authenticated by any of the
+  /// trusted root certificates.
+  ///
+  /// This setting is only affect the default [HttpClient] (means `client` is null),
+  /// so please notice it.
+  ///
+  /// If this value is `true`, this setting will be added to the [HttpClient] :
+  /// ``` dart
+  /// client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+  /// ```
+  final bool acceptBadCertificate;
 
   /// Set this property to the maximum number of redirects to follow.
   /// If this number is exceeded an error event will be added with a [RedirectException].
@@ -18,25 +28,33 @@ class HttpSession extends IOClient {
   /// The default value is 5.
   int maxRedirects;
 
+  /// Allow printing the debug logs
+  bool debugLog = false;
+
   /// Count the redirection
   int _redirectCounter = 0;
 
   /// Get current headers value
   Map<String, String> get headers => _headers;
 
-  /// Create a new http session instance
-  HttpSession({this.debugLog = false, this.maxRedirects = 5}) {
-    _httpDelegate = _ioClient();
-  }
-
   late IOClient _httpDelegate;
   final Map<String, String> _headers = <String, String>{};
 
+  /// Create a new [HttpSession] instance
+  HttpSession({
+    HttpClient? client,
+    this.acceptBadCertificate = false,
+    this.maxRedirects = 5,
+    this.debugLog = false,
+  }) {
+    _httpDelegate = _ioClient(client);
+  }
+
   /// Avoid badCertificate error
-  IOClient _ioClient() {
-    final HttpClient ioc = HttpClient();
-    ioc.badCertificateCallback =
-        (X509Certificate cert, String host, int port) => true;
+  IOClient _ioClient([HttpClient? client]) {
+    final HttpClient ioc = client ?? HttpClient()
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => acceptBadCertificate;
 
     return IOClient(ioc);
   }
