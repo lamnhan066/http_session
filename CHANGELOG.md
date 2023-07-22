@@ -1,3 +1,7 @@
+## 0.2.0-rc.3
+
+* Add `updateCookieFromHeaders` to manually update the cookies from headers.
+
 ## 0.2.0-rc.2
 
 * **[BREAKING CHANGE]** Decide whether to accept a connection that has bad certificate via `acceptBadCertificate` parameter. This value will be `false` by default since this version, so you need to change it to `true` if you need to accept the bad certificate like the old version.

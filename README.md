@@ -53,3 +53,9 @@ Get current session cookie header:
 ``` dart
 final headers = httpSession.headers;
 ```
+
+You can update the cookie manually from headers (Useful when using Isolate):
+
+``` dart
+httpsSession.updateCookieFromHeaders(headers);
+```

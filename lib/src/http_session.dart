@@ -64,6 +64,11 @@ class HttpSession extends IOClient {
     _headers.clear();
   }
 
+  /// Update cookie manually from headers
+  void updateCookieFromHeaders(Map<String, String> headers) {
+    _updateCookieHeaders(headers);
+  }
+
   @override
   void close() {
     _headers.clear();
