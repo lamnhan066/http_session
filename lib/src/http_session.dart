@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
 import 'package:http_session/http_session.dart';
 
+import 'cookie.dart';
+
 class HttpSession extends IOClient {
   /// Shared http session instance
   static final shared = HttpSession();
