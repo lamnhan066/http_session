@@ -12,13 +12,22 @@ Use shared session across the application
 
 ```dart
 final httpSession = HttpSession.shared;
+httpSession.debugLog = true;
+httpSession.maxRedirects = 5;
 ```
 
 Or create a new session instance
 
 ``` dart
-final httpSession = HttpSession();
+final httpSession = HttpSession(
+    client: HttpClient(), // Optional
+    acceptBadCertificate: false,
+    maxRedirects: 5,
+    debugLog: true,
+);
 ```
+
+Please notice that the `acceptBadCertificate` will override the default value of the `client` (means `client` parameter is `null`). This setting is to decide whether to accept a secure connection with a server certificate that cannot be authenticated by any of the trusted root certificates.
 
 Now you can requests any URI and the plugin will automatically save the session.
 
@@ -39,8 +48,14 @@ Close the current http and also clear the session
 httpSession.close();
 ```
 
-Get current session headers:
+Get current session cookie header:
 
 ``` dart
 final headers = httpSession.headers;
+```
+
+You can update the cookie manually from headers (Useful when using Isolate):
+
+``` dart
+httpsSession.updateCookieFromHeaders(headers);
 ```
