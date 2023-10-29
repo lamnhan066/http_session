@@ -1,3 +1,5 @@
+import 'package:punycode/punycode.dart';
+
 class CookieStore {
   /// Regex string that matches an LDH Label. Matches the entire string only.
   ///
@@ -181,7 +183,9 @@ class CookieStore {
   ///
   /// More information: RFC 3492 https://datatracker.ietf.org/doc/html/rfc3492
   String _toPunyCode(String input) {
-    throw UnimplementedError("TODO");
+    // TODO: I should probably implement this myself and actually fail on
+    // overflow but oh well
+    return punycodeEncode(input);
   }
 }
 
