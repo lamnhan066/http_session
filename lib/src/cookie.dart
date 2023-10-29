@@ -118,11 +118,20 @@ class CookieStore {
   }
 
   /// Tests whether the two domains are equivalent
+  ///
+  /// Returns false if one or more of the domains are invalid
   bool _domainCompare(String x, String y) {
-    return _toCanonical(x) == _toCanonical(y);
+    try {
+      return _toCanonical(x) == _toCanonical(y);
+    } catch (e) {
+      // If either are invalid, return false
+      return false;
+    }
   }
 
   /// Converts a given [requestDomain] to a canonical representation per RFC6265
+  ///
+  /// Throws a [FormatException] if [requestDomain] is invalid
   ///
   /// More information: RFC6265 Section 5.1.2
   ///             https://datatracker.ietf.org/doc/html/rfc6265#section-5.1.2
@@ -155,6 +164,7 @@ class CookieStore {
       } else {
         // An A-label is the sequence "xn--" followed by the output of the
         // RFC3492 punycode algorithm.
+        // Don't catch the possible exception, pass upwards
         outLabels.add("xn--${_toPunyCode(label)}");
       }
     }
@@ -166,6 +176,8 @@ class CookieStore {
 
   /// Runs the RFC 3492 Punycode algorithm on a given [input] string and returns
   /// the result.
+  ///
+  /// Throws a [FormatException] if the provided string is invalid
   ///
   /// More information: RFC 3492 https://datatracker.ietf.org/doc/html/rfc3492
   String _toPunyCode(String input) {
