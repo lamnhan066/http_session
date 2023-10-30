@@ -70,7 +70,7 @@ class CookieStore {
     String value,
     Map<String, String> attrs,
   ) parseSetCookie(String header) {
-    // set-cookie-string porion:
+    // set-cookie-string portion:
     // Step 1
 
     int firstSemicolon = header.indexOf("\x3B"); // 0x3B = ';'
