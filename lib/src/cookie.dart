@@ -49,10 +49,46 @@ class CookieStore {
     return _processCookie(name, value, attrs, requestDomain, requestPath);
   }
 
+  /// Get the cookies you need to submit for a given [requestDomain] and a
+  /// given [requestPath].
+  ///
+  /// This is the method you should be using if you want to treat this library
+  /// as a black box and have it store cookies for you, along with
+  /// [updateCookies].
   List<Cookie> getCookiesForRequest(String requestDomain, String requestPath) {
     List<Cookie> ret = [];
-    throw UnimplementedError();
+    for (Cookie cookie in cookies) {
+      if (_domainCompare(cookie.domain, requestDomain) &&
+          pathMatches(cookie.path, requestPath)) {
+        ret.add(cookie);
+      }
+    }
     return ret;
+  }
+
+  /// Compares the two given paths, [requestPath] and [cookiePath], using the
+  /// algorithm given in section 5.1.4 of RFC 6265.
+  ///
+  /// They must first be converted to default-path form using the algorithm in
+  /// the same section.
+  ///
+  /// WARNING: pathMatches(x,y) != pathMatches(y,x) in some cases.
+  ///
+  /// For more information:
+  ///   https://datatracker.ietf.org/doc/html/rfc6265#section-5.1.2
+  bool pathMatches(String requestPath, String cookiePath) {
+    // If the paths are identical, they match
+    if (requestPath == cookiePath) return true;
+    // If the cookie path is a prefix of the request path:
+    if (requestPath.startsWith(RegExp.escape(cookiePath))) {
+      // They match if the cookie path ends with a '/', or
+      if (cookiePath.endsWith("/")) return true;
+      // If the first character in the request path that isn't in the cookie
+      // path is a '/'
+      if (requestPath[cookiePath.length] == "\x2F") return true; // 0x2F = '/'
+    }
+    // Otherwise, they do not match
+    return false;
   }
 
   /// Parse the Set-Cookie header value and return the cookie details. Follows
