@@ -117,4 +117,19 @@ void main() {
         RegExp(CookieStore.ldhLabelRegexString).hasMatch(
             "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"));
   });
+
+  test('End to end tests', () {
+    CookieStore store = CookieStore();
+    store.updateCookies("PHPSESSID=el4ukv0kqbvoirg7nkp4dncpk3", "example.com",
+        "/sample-directory/sample.php");
+    String cookieHeader = CookieStore.buildCookieHeader(
+        store.getCookiesForRequest("example.com", "/"));
+    expect("PHPSESSID=el4ukv0kqbvoirg7nkp4dncpk3", cookieHeader);
+
+    store.updateCookies(
+        "lang=en/ca", "example.com", "/sample-directory/sample.php");
+    cookieHeader = CookieStore.buildCookieHeader(
+        store.getCookiesForRequest("example.com", "/"));
+    expect("PHPSESSID=el4ukv0kqbvoirg7nkp4dncpk3;lang=en/ca", cookieHeader);
+  });
 }
