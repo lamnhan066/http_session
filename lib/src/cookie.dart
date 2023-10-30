@@ -68,12 +68,17 @@ class CookieStore {
 
   /// Builds a Cookie header containing the [cookies] provided. Does not check
   /// anything about whether the cookies should be sent.
+  ///
+  /// Does not include the header name or the semicolon (the "Cookie: " part)
+  /// This is for cases where the header name and value are needed separately.
+  /// It wouldn't make sense to add the header name for it to be immediately
+  /// removed by the caller.
   static String buildCookieHeader(List<Cookie> cookies) {
     List<String> cookieStrs = [];
     for (Cookie cookie in cookies) {
       cookieStrs.add("${cookie.name}=${cookie.value}");
     }
-    return "Cookie: ${cookieStrs.join(";")}";
+    return cookieStrs.join(";");
   }
 
   /// Compares the two given paths, [requestPath] and [cookiePath], using the
