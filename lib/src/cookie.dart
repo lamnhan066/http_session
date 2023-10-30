@@ -49,6 +49,12 @@ class CookieStore {
     return _processCookie(name, value, attrs, requestDomain, requestPath);
   }
 
+  List<Cookie> getCookiesForRequest(String requestDomain, String requestPath) {
+    List<Cookie> ret = [];
+    throw UnimplementedError();
+    return ret;
+  }
+
   /// Parse the Set-Cookie header value and return the cookie details. Follows
   /// the algorithm in RFC6265 section 5.2.
   ///
