@@ -174,7 +174,8 @@ class CookieStore {
       notNrLdh = !ldh.hasMatch(label); // If it is a match, it is LDH
 
       // Then check if it is an XN-label (short circuit if above was true)
-      notNrLdh = notNrLdh || (label[2] == '-' && label[3] == '-');
+      notNrLdh = notNrLdh ||
+          (label.length >= 4 && (label[2] == '-' && label[3] == '-'));
 
       // B. If it is not an NR-LDH label, convert it to an A-label
       //    otherwise, keep it as is
