@@ -1,7 +1,7 @@
-name: http_session
-description: This plugin helps you easier to manage the sessions when using http to requests.
-version: 0.2.0-rc.3
-homepage: https://github.com/vnniz/http_session
+name: cookie_store
+description: Manages cookies in accordance with RFC 6265
+version: 0.1.0
+homepage: https://github.com/egefeyzioglu/cookie_store
 
 environment:
   sdk: ">=3.0.0 <4.0.0"

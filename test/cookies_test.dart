@@ -1,4 +1,4 @@
-import 'package:http_session/src/cookie.dart';
+import 'package:cookie_store/src/cookie.dart';
 import 'package:test/test.dart';
 
 void main() {
