@@ -10,6 +10,9 @@ void main() {
 
     result = store.toCanonical("Bücher.example");
     expect(result, "xn--bcher-kva.example");
+
+    result = store.toCanonical("example.com");
+    expect("example.com", result);
   });
 
   /// LDH Label format defined in RFC 5890 Section 2.3.1:
