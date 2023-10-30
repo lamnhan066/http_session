@@ -23,6 +23,32 @@ class CookieStore {
 
   List<Cookie> cookies = [];
 
+  /// Updates the cookie store with the given Set-Cookie header
+  /// ([setCookieHeader]), for the given [requestDomain] and [requestPath].
+  /// Returns true if the cookie was accepted, false if not.
+  ///
+  /// This is the method you should be using if you want to treat this library
+  /// as a black box and have it store cookies for you, along with
+  /// [getCookiesForRequest].
+  ///
+  /// May throw a [FormatException] if [setCookieHeader] is malformed
+  ///
+  /// Strip the header name, colon and space (the "Set-Cookie: " portion) from
+  /// the header before passing it to this function. This is for cases where the
+  /// header name and value are already separated before the user needs to call
+  /// this method. It wouldn't make sense to spend time reattaching the pieces
+  /// for the name to immediately be stripped here.
+  ///
+  /// For more information:
+  ///   https://datatracker.ietf.org/doc/html/rfc6265
+  bool updateCookies(
+      String setCookieHeader, String requestDomain, String requestPath) {
+    String name, value;
+    Map<String, String> attrs;
+    (name, value, attrs) = parseSetCookie(setCookieHeader);
+    return _processCookie(name, value, attrs, requestDomain, requestPath);
+  }
+
   /// Parse the Set-Cookie header value and return the cookie details. Follows
   /// the algorithm in RFC6265 section 5.2.
   ///
