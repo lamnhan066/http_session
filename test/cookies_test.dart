@@ -2,6 +2,34 @@ import 'package:http_session/src/cookie.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('Cookie Store - Test the Set-Cookie header parsing', () {
+    // A valid header
+    CookieStore store = CookieStore();
+    String name, value;
+    Map<String, String> attrs;
+    (name, value, attrs) = store.parseSetCookie(
+        "<cookie-name>=<cookie-value>; Domain=<domain-value>; Secure; HttpOnly");
+    expect(name, "<cookie-name>");
+    expect(value, "<cookie-value>");
+    expect(attrs, {'Domain': '<domain-value>', 'Secure': '', 'HttpOnly': ''});
+    // What happens if the user forgets to strip the header name
+    (name, value, attrs) = store.parseSetCookie(
+        "Set-Cookie: <cookie-name>=<cookie-value>; Domain=<domain-value>; Secure; HttpOnly");
+    expect(name, "Set-Cookie: <cookie-name>");
+    expect(value, "<cookie-value>");
+    expect(attrs, {'Domain': '<domain-value>', 'Secure': '', 'HttpOnly': ''});
+    // Cookie values can be empty
+    (name, value, attrs) = store.parseSetCookie(
+        "<cookie-name>=; Domain=<domain-value>; Secure; HttpOnly");
+    expect(name, "<cookie-name>");
+    expect(value, "");
+    expect(attrs, {'Domain': '<domain-value>', 'Secure': '', 'HttpOnly': ''});
+    // Cookie names cannot be
+    expect(
+        () => store.parseSetCookie(
+            "<cookie-value>;asdasdasd=asdasdasd;asdffds=asdfsf"),
+        throwsFormatException);
+  });
   test('Cookie Store - Test the canonicalisation method', () {
     CookieStore store = CookieStore();
 

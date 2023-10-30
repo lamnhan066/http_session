@@ -23,13 +23,111 @@ class CookieStore {
 
   List<Cookie> cookies = [];
 
+  /// Parse the Set-Cookie header value and return the cookie details. Follows
+  /// the algorithm in RFC6265 section 5.2.
+  ///
+  /// [name] is the cookie name, [value] is the cookie value, and [attrs] are
+  /// attributes in key-value form, lowercase.
+  ///
+  /// May throw a [FormatException] if [header] is malformed
+  ///
+  /// Strip the header name, colon and space (the "Set-Cookie: " portion) from
+  /// the header before passing it to this function. This is for cases where the
+  /// header name and value are already separated before the user needs to call
+  /// this method. It wouldn't make sense to spend time reattaching the pieces
+  /// for the name to immediately be stripped here.
+  ///
+  /// For more information:
+  ///   https://datatracker.ietf.org/doc/html/rfc6265#section-5.1.2
   (
     String name,
     String value,
     Map<String, String> attrs,
   ) parseSetCookie(String header) {
-    // TODO: Implement
-    throw UnimplementedError();
+    // set-cookie-string porion:
+    // Step 1
+
+    int firstSemicolon = header.indexOf("\x3B"); // 0x3B = ';'
+    String nameValuePair;
+    String unparsedAttributes;
+    if (firstSemicolon != -1) {
+      // If the set-cookie-string contains a semicolon:
+      // Split up the set-cookie-string
+      nameValuePair = header.substring(0, firstSemicolon);
+      unparsedAttributes =
+          header.substring(firstSemicolon); // Yes, include the semicolon
+    } else {
+      // Otherwise:
+      // Everything is name-value-pair
+      nameValuePair = header;
+      unparsedAttributes = "";
+    }
+
+    // Step 2
+
+    // The value starts one after this index
+    int valueAfter = nameValuePair.indexOf("\x3d"); // 0x3D = '='
+    if (valueAfter == -1) {
+      throw FormatException("name-value-pair did not contain an equals sign");
+    }
+
+    // Step 3
+
+    // If the name is empty, don't run substring (it will throw)
+    String name =
+        (valueAfter == 0) ? "" : nameValuePair.substring(0, valueAfter);
+    // Same with the value
+    String value = (valueAfter == nameValuePair.length - 1)
+        ? ""
+        : nameValuePair.substring(valueAfter + 1);
+
+    // Step 4
+    name = name.trim();
+    value = value.trim();
+
+    // Step 5
+    if (name.isEmpty) {
+      throw FormatException("Cookie name was empty");
+    }
+
+    // unparsed-attributes section
+    Map<String, String> attrs = {};
+    // Step 1
+    while (unparsedAttributes.isNotEmpty) {
+      // Step 2 (that character should be the semicolon)
+      unparsedAttributes = unparsedAttributes.substring(1);
+      // Step 3
+      String cookieAv;
+      int semiColonAt = unparsedAttributes.indexOf("\x3B"); // 0x3B = ';'
+      if (semiColonAt == -1) {
+        // If there isn't another section left, consume the entire thing
+        cookieAv = unparsedAttributes;
+        unparsedAttributes = "";
+      } else {
+        // Otherwise, consume the next section
+        cookieAv = unparsedAttributes.substring(0, semiColonAt);
+        unparsedAttributes = unparsedAttributes.substring(semiColonAt);
+      }
+      // Step 4
+      int equalsAt = cookieAv.indexOf("\x3D"); // 0x3D = '='
+      String attrName, attrValue;
+      if (equalsAt == -1) {
+        attrName = cookieAv;
+        attrValue = "";
+      } else {
+        // If the attribute name is empty, don't run substring (it will throw)
+        attrName = (equalsAt == 0) ? "" : cookieAv.substring(0, equalsAt);
+        // Same with the attribute value
+        attrValue = (equalsAt == cookieAv.length)
+            ? ""
+            : cookieAv.substring(equalsAt + 1);
+      }
+      // Step 5
+      attrs[attrName.trim()] = attrValue.trim();
+      // Step 6 not done in this method (see [_processCookie])
+    } // Step 7
+
+    return (name, value, attrs);
   }
 
   /// Process given Set-Cookie and add to [cookies].
