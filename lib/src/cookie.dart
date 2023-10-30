@@ -21,7 +21,21 @@ class CookieStore {
   static const String ldhLabelRegexString =
       r'(^[A-Za-z0-9][A-Za-z0-9-]{0,61}[A-Za-z0-9]$)|(^[A-Za-z0-9]$)';
 
-  List<Cookie> cookies = [];
+  List<Cookie> _cookies = [];
+
+  List<Cookie> get cookies {
+    for (var cookie in _cookies) {
+      if (cookie.expiryTime != null &&
+          cookie.expiryTime!.isBefore(DateTime.now())) {
+        _cookies.remove(cookie);
+      }
+    }
+    return _cookies;
+  }
+
+  set cookies(List<Cookie> value) {
+    _cookies = value;
+  }
 
   /// Updates the cookie store with the given Set-Cookie header
   /// ([setCookieHeader]), for the given [requestDomain] and [requestPath].
@@ -318,8 +332,9 @@ class CookieStore {
     // Non-HTTP APIs are not supported, skip
 
     // Step 11
-    cookies.remove(cookie);
-    cookies.add(cookie);
+    // Access the private variable directly to be able to change it
+    _cookies.remove(cookie);
+    _cookies.add(cookie);
     return true;
   }
 
