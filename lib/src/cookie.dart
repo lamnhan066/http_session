@@ -1,4 +1,5 @@
 import 'package:punycode/punycode.dart';
+import 'package:meta/meta.dart';
 
 class CookieStore {
   /// Regex string that matches an LDH Label. Matches the entire string only.
@@ -94,7 +95,7 @@ class CookieStore {
       }
     } else {
       cookie.hostOnly = true;
-      cookie.domain = _toCanonical(requestDomain);
+      cookie.domain = toCanonical(requestDomain);
     }
 
     // Step 7
@@ -124,7 +125,7 @@ class CookieStore {
   /// Returns false if one or more of the domains are invalid
   bool _domainCompare(String x, String y) {
     try {
-      return _toCanonical(x) == _toCanonical(y);
+      return toCanonical(x) == toCanonical(y);
     } catch (e) {
       // If either are invalid, return false
       return false;
@@ -132,12 +133,22 @@ class CookieStore {
   }
 
   /// Converts a given [requestDomain] to a canonical representation per RFC6265
+  /// !!EXTERNAL USER: READ BELOW!!
   ///
   /// Throws a [FormatException] if [requestDomain] is invalid
   ///
+  /// I really hate that I have to expose this, since I don't want people to
+  /// rely on my implementation -it is not meant to be a perfect implementation,
+  /// and I have not thought through all edge cases. Some might come up for you
+  /// that won't not come up for my use of this method.
+  ///
+  /// If you use this implementation, you might introduce bugs into your code.
+  /// Please just reimplement it yourself. You have been warned.
+  ///
   /// More information: RFC6265 Section 5.1.2
   ///             https://datatracker.ietf.org/doc/html/rfc6265#section-5.1.2
-  String _toCanonical(String requestDomain) {
+  @visibleForTesting
+  String toCanonical(String requestDomain) {
     var outLabels = [];
     // Step 1
     final labels = requestDomain.split('.');
