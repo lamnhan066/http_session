@@ -58,7 +58,7 @@ class CookieStore {
   List<Cookie> getCookiesForRequest(String requestDomain, String requestPath) {
     List<Cookie> ret = [];
     for (Cookie cookie in cookies) {
-      if (_domainCompare(cookie.domain, requestDomain) &&
+      if (_domainMatches(cookie.domain, requestDomain) &&
           pathMatches(cookie.path, requestPath)) {
         ret.add(cookie);
       }
@@ -274,7 +274,7 @@ class CookieStore {
 
     // Step 6
     if (cookie.domain != "") {
-      if (!_domainCompare(cookie.domain, requestDomain)) {
+      if (!_domainMatches(cookie.domain, requestDomain)) {
         return false;
       } else {
         cookie.hostOnly = false;
@@ -323,16 +323,44 @@ class CookieStore {
     return true;
   }
 
-  /// Tests whether the two domains are equivalent
+  /// Tests whether a given [string] domain-matches a given [domainString] as
+  /// described in RFC6265 section 5.1.3.
+  ///
+  /// WARNING: domainMatches(x,y) != domainMatches(y,x) in some cases.
   ///
   /// Returns false if one or more of the domains are invalid
-  bool _domainCompare(String x, String y) {
+  bool _domainMatches(String string, String domainString) {
     try {
-      return toCanonical(x) == toCanonical(y);
+      // If they are exactly equal, return true
+      if (toCanonical(string) == toCanonical(domainString)) return true;
     } catch (e) {
       // If either are invalid, return false
       return false;
     }
+    // Otherwise, see if they domain-match the other way.
+    // All of the following must hold:
+    // * domainString is a suffix of the string
+    bool match = string.endsWith(domainString);
+    // * The last character of the string that is not included in the domain
+    //   string is '.'.
+    int indexAfterDomainString = string.length - domainString.length - 1;
+    if (indexAfterDomainString < 0) return false;
+    match &= string[indexAfterDomainString] == "\x2E"; // 0x2E = '.'
+    // * The string is a host name (so not an IP address)
+    bool notIpAddr = false;
+    try {
+      Uri.parseIPv4Address(string);
+    } on FormatException {
+      notIpAddr = true;
+    }
+    try {
+      Uri.parseIPv6Address(string);
+    } on FormatException {
+      notIpAddr = true;
+    }
+    match &= notIpAddr;
+    // If all of them were true, return true. Otherwise return false.
+    return match;
   }
 
   /// Converts a given [requestDomain] to a canonical representation per RFC6265
