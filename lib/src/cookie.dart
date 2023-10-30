@@ -37,6 +37,68 @@ class CookieStore {
     _cookies = value;
   }
 
+  /// Call this when the session ends (defined by you,) to clear cookies that
+  /// were not set as persistent.
+  void onSessionEnded() {
+    for (Cookie cookie in _cookies) {
+      if (!cookie.persistent) _cookies.remove(cookie);
+    }
+  }
+
+  /// Reduce the cookie store to [targetNumCookies] or smaller. Set [force]
+  /// if you want to delete unexpired or non-excessive cookies.
+  ///
+  /// "Excessive cookies" means cookies that share a domain with more than
+  /// [numExcessive] number of cookies.
+  ///
+  /// Returns true if the main [cookies] array could be reduced to the requested
+  /// size, false if not. If [force] is set, the method will never return false.
+  bool reduceSize(int targetNumCookies, bool force, {int numExcessive = 75}) {
+    // Use getter to clear expired cookies
+    var cookies = this.cookies;
+    int currentNumCookies = cookies.length;
+    if (currentNumCookies <= targetNumCookies) return true;
+    // Then, check for excessive cookies
+    Map<String, List<Cookie>> cookiesPerDomain = {};
+    for (var cookie in cookies) {
+      bool found = false;
+      cookiesPerDomain.forEach((domain, cookiesForDomain) {
+        // If we've already seen cookies domain matching the current cookie's
+        // domain (or vice-versa), keep them together.
+        if (_domainMatches(cookie.domain, cookiesForDomain[0].domain) ||
+            _domainMatches(cookiesForDomain[0].domain, cookie.domain)) {
+          cookiesPerDomain[domain]!.add(cookie);
+          found = true;
+        }
+      });
+      // Otherwise, start a new pile
+      if (!found) cookiesPerDomain[cookie.domain] = [cookie];
+    }
+    // If any are excessive, delete cookies from that domain
+    for (var cookiesForThisDomain in cookiesPerDomain.entries) {
+      if (cookiesForThisDomain.value.length > numExcessive) {
+        for (var cookie in cookiesForThisDomain.value) {
+          _cookies.remove(cookie);
+        }
+      }
+    }
+
+    // Check if we managed to reduce to the requested quantity. If we did,
+    // return true.
+    // If we didn't and force is set, delete starting from the oldest cookie
+    // until we reach the number then return true.
+    // If force isn't set, return false.
+    if (!force) return _cookies.length <= targetNumCookies;
+    _cookies.sort(
+        (Cookie x, Cookie y) => x.lastAccessTime.compareTo(y.lastAccessTime));
+    int numLeft = _cookies.length - targetNumCookies;
+    for (var cookie in _cookies) {
+      _cookies.remove(cookie);
+      if (--numLeft == 0) break;
+    }
+    return true;
+  }
+
   /// Updates the cookie store with the given Set-Cookie header
   /// ([setCookieHeader]), for the given [requestDomain] and [requestPath].
   /// Returns true if the cookie was accepted, false if not.
