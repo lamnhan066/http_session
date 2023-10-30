@@ -26,7 +26,8 @@ class CookieStore {
   List<Cookie> get cookies {
     List<Cookie> toRemove = [];
     for (var cookie in _cookies) {
-      if (cookie.expiryTime != null &&
+      if (cookie.persistent &&
+          cookie.expiryTime != null &&
           cookie.expiryTime!.isBefore(DateTime.now())) {
         toRemove.add(cookie);
       }
