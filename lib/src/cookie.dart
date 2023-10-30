@@ -66,6 +66,16 @@ class CookieStore {
     return ret;
   }
 
+  /// Builds a Cookie header containing the [cookies] provided. Does not check
+  /// anything about whether the cookies should be sent.
+  static String buildCookieHeader(List<Cookie> cookies) {
+    List<String> cookieStrs = [];
+    for (Cookie cookie in cookies) {
+      cookieStrs.add("${cookie.name}=${cookie.value}");
+    }
+    return "Cookie: ${cookieStrs.join(";")}";
+  }
+
   /// Compares the two given paths, [requestPath] and [cookiePath], using the
   /// algorithm given in section 5.1.4 of RFC 6265.
   ///
