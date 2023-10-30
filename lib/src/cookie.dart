@@ -4,6 +4,11 @@ import 'package:meta/meta.dart';
 class CookieStore {
   /// Regex string that matches an LDH Label. Matches the entire string only.
   ///
+  /// Would have private'd this but I want it accessible for testing. Just write
+  /// your own regex or copy/paste from the source file. This is not in the
+  /// package's public API and can change or disappear without notice. Also
+  /// like, JFC don't introduce a dependency for a string constant.
+  ///
   /// LDH Label format defined in RFC 5890 Section 2.3.1:
   ///
   /// ASCII uppercase, lowercase, or numbers. Dashes allowed other than in the
@@ -12,8 +17,9 @@ class CookieStore {
   ///
   /// More information:
   ///   https://datatracker.ietf.org/doc/html/rfc5890#section-2.3.1
-  static const String _ldhLabelRegexString =
-      "/\\A[A-Za-z0-9][A-Za-z0-9-]{0,61}[A-Za-z0-9]\\Z/";
+  @visibleForTesting
+  static const String ldhLabelRegexString =
+      r'(^[A-Za-z0-9][A-Za-z0-9-]{0,61}[A-Za-z0-9]$)|(^[A-Za-z0-9]$)';
 
   List<Cookie> cookies = [];
 
@@ -164,7 +170,7 @@ class CookieStore {
       bool notNrLdh = false;
 
       // First check if it is not an LDH label
-      final ldh = RegExp(_ldhLabelRegexString);
+      final ldh = RegExp(ldhLabelRegexString);
       notNrLdh = !ldh.hasMatch(label); // If it is a match, it is LDH
 
       // Then check if it is an XN-label (short circuit if above was true)
