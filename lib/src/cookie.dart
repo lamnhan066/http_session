@@ -185,7 +185,7 @@ class CookieStore {
         // An A-label is the sequence "xn--" followed by the output of the
         // RFC3492 punycode algorithm.
         // Don't catch the possible exception, pass upwards
-        outLabels.add("xn--${_toPunyCode(label)}");
+        outLabels.add("xn--${_toPunyCode(label).toLowerCase()}");
       }
     }
     // Step 3
