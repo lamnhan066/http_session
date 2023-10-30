@@ -2,7 +2,7 @@ import 'package:http_session/src/cookie.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('Cookie Store - Test the canonucalisation method', () {
+  test('Cookie Store - Test the canonicalisation method', () {
     CookieStore store = CookieStore();
 
     String result = store.toCanonical("öbb.at");
