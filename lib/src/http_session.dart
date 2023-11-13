@@ -67,13 +67,13 @@ class HttpSession implements IOClient {
     Object? body,
     Encoding? encoding,
   }) async {
-    Map<String, String> _headers = {
+    Map<String, String> headers0 = {
       "Cookie": _getCookieHeader(url.host, url.path)
     };
-    _headers.addAll(headers ?? {});
+    headers0.addAll(headers ?? {});
     return _updateResponse(_httpDelegate.delete(
       url,
-      headers: _headers,
+      headers: headers0,
       body: body,
       encoding: encoding,
     ));
@@ -81,20 +81,20 @@ class HttpSession implements IOClient {
 
   @override
   Future<http.Response> get(Uri url, {Map<String, String>? headers}) async {
-    Map<String, String> _headers = {
+    Map<String, String> headers0 = {
       "Cookie": _getCookieHeader(url.host, url.path)
     };
-    _headers.addAll(headers ?? {});
-    return _updateResponse(_httpDelegate.get(url, headers: _headers));
+    headers0.addAll(headers ?? {});
+    return _updateResponse(_httpDelegate.get(url, headers: headers0));
   }
 
   @override
   Future<http.Response> head(Uri url, {Map<String, String>? headers}) async {
-    Map<String, String> _headers = {
+    Map<String, String> headers0 = {
       "Cookie": _getCookieHeader(url.host, url.path)
     };
-    _headers.addAll(headers ?? {});
-    return _updateResponse(_httpDelegate.head(url, headers: _headers));
+    headers0.addAll(headers ?? {});
+    return _updateResponse(_httpDelegate.head(url, headers: headers0));
   }
 
   @override
@@ -104,13 +104,13 @@ class HttpSession implements IOClient {
     Object? body,
     Encoding? encoding,
   }) async {
-    Map<String, String> _headers = {
+    Map<String, String> headers0 = {
       "Cookie": _getCookieHeader(url.host, url.path)
     };
-    _headers.addAll(headers ?? {});
+    headers0.addAll(headers ?? {});
     return _updateResponse(_httpDelegate.patch(
       url,
-      headers: _headers,
+      headers: headers0,
       body: body,
       encoding: encoding,
     ));
@@ -123,13 +123,13 @@ class HttpSession implements IOClient {
     Object? body,
     Encoding? encoding,
   }) async {
-    Map<String, String> _headers = {
+    Map<String, String> headers0 = {
       "Cookie": _getCookieHeader(url.host, url.path)
     };
-    _headers.addAll(headers ?? {});
+    headers0.addAll(headers ?? {});
     return _updateResponse(_httpDelegate.post(
       url,
-      headers: _headers,
+      headers: headers0,
       body: body,
       encoding: encoding,
     ));
@@ -142,13 +142,13 @@ class HttpSession implements IOClient {
     Object? body,
     Encoding? encoding,
   }) async {
-    Map<String, String> _headers = {
+    Map<String, String> headers0 = {
       "Cookie": _getCookieHeader(url.host, url.path)
     };
-    _headers.addAll(headers ?? {});
+    headers0.addAll(headers ?? {});
     return _updateResponse(_httpDelegate.put(
       url,
-      headers: _headers,
+      headers: headers0,
       body: body,
       encoding: encoding,
     ));
@@ -159,11 +159,11 @@ class HttpSession implements IOClient {
     Uri url, {
     Map<String, String>? headers,
   }) {
-    Map<String, String> _headers = {
+    Map<String, String> headers0 = {
       "Cookie": _getCookieHeader(url.host, url.path)
     };
-    _headers.addAll(headers ?? {});
-    return _httpDelegate.read(url, headers: _headers);
+    headers0.addAll(headers ?? {});
+    return _httpDelegate.read(url, headers: headers0);
   }
 
   @override
@@ -171,11 +171,11 @@ class HttpSession implements IOClient {
     Uri url, {
     Map<String, String>? headers,
   }) {
-    Map<String, String> _headers = {
+    Map<String, String> headers0 = {
       "Cookie": _getCookieHeader(url.host, url.path)
     };
-    _headers.addAll(headers ?? {});
-    return _httpDelegate.readBytes(url, headers: _headers);
+    headers0.addAll(headers ?? {});
+    return _httpDelegate.readBytes(url, headers: headers0);
   }
 
   /// Add cookie to the request
