@@ -1,23 +1,18 @@
 import 'package:http_session/http_session.dart';
 import 'package:test/test.dart';
 
-/// TODO: Add test server
-const testURL = '';
+const testURL = 'https://begaydocrime.org/http_session/gimmecookies.php';
 
 void main() {
   test('Http Session', () async {
-    expect(HttpSession.shared.headers, isEmpty);
-
-    await HttpSession.shared.post(Uri.parse(testURL));
-
-    expect(HttpSession.shared.headers, isNotEmpty);
-
-    await HttpSession.shared.get(Uri.parse(testURL));
-
-    expect(HttpSession.shared.headers, isNotEmpty);
-
-    HttpSession.shared.close();
-
-    expect(HttpSession.shared.headers, isEmpty);
+    ///TODO: Minimal test, expand
+    HttpSession session = HttpSession();
+    expect(session.cookieStore.cookies.length, 0);
+    await session.get(Uri.parse("$testURL?name=foo&value=bar"));
+    expect(session.cookieStore.cookies.length, 1);
+    await session.get(Uri.parse("$testURL?num=5"));
+    expect(session.cookieStore.cookies.length, 6);
+    session.clear();
+    expect(session.cookieStore.cookies.length, 0);
   });
 }
