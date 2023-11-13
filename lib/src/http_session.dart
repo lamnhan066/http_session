@@ -4,21 +4,23 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
+import 'package:cookie_store/cookie_store.dart';
 
 class HttpSession implements IOClient {
   /// Shared http session instance
   static final shared = HttpSession();
 
-  /// Get current headers value
-  Map<String, String> get headers => _headers;
+  /// Getter for the cookie store
+  CookieStore get cookieStore => _cookieStore;
 
   /// Create a new http session instance
   HttpSession() {
     _httpDelegate = _ioClient();
+    _cookieStore = CookieStore();
   }
 
   late IOClient _httpDelegate;
-  final Map<String, String> _headers = <String, String>{};
+  late CookieStore _cookieStore;
 
   /// Avoid badCertificate error
   IOClient _ioClient() {
@@ -30,12 +32,12 @@ class HttpSession implements IOClient {
 
   /// Clear the current session
   void clear() {
-    _headers.clear();
+    _cookieStore.reduceSize(0, true);
   }
 
   @override
   void close() {
-    _headers.clear();
+    _cookieStore.onSessionEnded();
     _httpDelegate.close();
   }
 
@@ -43,15 +45,19 @@ class HttpSession implements IOClient {
   Future<IOStreamedResponse> send(
     http.BaseRequest request,
   ) {
-    final headers = _getCookie(request.headers);
-    final tempRequest = request
-      ..headers.clear()
-      ..headers.addAll(headers);
+    final tempRequest = request;
+    request.headers['Cookie'] = CookieStore.buildCookieHeader(
+        _cookieStore.getCookiesForRequest(request.url.host, request.url.path));
 
     final result = _httpDelegate.send(tempRequest);
-    result.then((value) => _updateCookieHeaders(value.headers));
-
-    return result;
+    return Future.value(result.then((result) {
+      String? setCookie = result.headers["Set-Cookie"];
+      if (setCookie != null) {
+        _cookieStore.updateCookies(
+            setCookie, request.url.host, request.url.path);
+      }
+      return result;
+    }));
   }
 
   @override
@@ -61,34 +67,34 @@ class HttpSession implements IOClient {
     Object? body,
     Encoding? encoding,
   }) async {
-    return _updateResponse(await _httpDelegate.delete(
+    Map<String, String> _headers = {
+      "Cookie": _getCookieHeader(url.host, url.path)
+    };
+    _headers.addAll(headers ?? {});
+    return _updateResponse(_httpDelegate.delete(
       url,
-      headers: _getCookie(headers),
+      headers: _headers,
       body: body,
       encoding: encoding,
     ));
   }
 
   @override
-  Future<http.Response> get(
-    Uri url, {
-    Map<String, String>? headers,
-  }) async {
-    return _updateResponse(await _httpDelegate.get(
-      url,
-      headers: _getCookie(headers),
-    ));
+  Future<http.Response> get(Uri url, {Map<String, String>? headers}) async {
+    Map<String, String> _headers = {
+      "Cookie": _getCookieHeader(url.host, url.path)
+    };
+    _headers.addAll(headers ?? {});
+    return _updateResponse(_httpDelegate.get(url, headers: _headers));
   }
 
   @override
-  Future<http.Response> head(
-    Uri url, {
-    Map<String, String>? headers,
-  }) async {
-    return _updateResponse(await _httpDelegate.head(
-      url,
-      headers: _getCookie(headers),
-    ));
+  Future<http.Response> head(Uri url, {Map<String, String>? headers}) async {
+    Map<String, String> _headers = {
+      "Cookie": _getCookieHeader(url.host, url.path)
+    };
+    _headers.addAll(headers ?? {});
+    return _updateResponse(_httpDelegate.head(url, headers: _headers));
   }
 
   @override
@@ -98,9 +104,13 @@ class HttpSession implements IOClient {
     Object? body,
     Encoding? encoding,
   }) async {
-    return _updateResponse(await _httpDelegate.patch(
+    Map<String, String> _headers = {
+      "Cookie": _getCookieHeader(url.host, url.path)
+    };
+    _headers.addAll(headers ?? {});
+    return _updateResponse(_httpDelegate.patch(
       url,
-      headers: _getCookie(headers),
+      headers: _headers,
       body: body,
       encoding: encoding,
     ));
@@ -113,9 +123,13 @@ class HttpSession implements IOClient {
     Object? body,
     Encoding? encoding,
   }) async {
-    return _updateResponse(await _httpDelegate.post(
+    Map<String, String> _headers = {
+      "Cookie": _getCookieHeader(url.host, url.path)
+    };
+    _headers.addAll(headers ?? {});
+    return _updateResponse(_httpDelegate.post(
       url,
-      headers: _getCookie(headers),
+      headers: _headers,
       body: body,
       encoding: encoding,
     ));
@@ -128,9 +142,13 @@ class HttpSession implements IOClient {
     Object? body,
     Encoding? encoding,
   }) async {
-    return _updateResponse(await _httpDelegate.put(
+    Map<String, String> _headers = {
+      "Cookie": _getCookieHeader(url.host, url.path)
+    };
+    _headers.addAll(headers ?? {});
+    return _updateResponse(_httpDelegate.put(
       url,
-      headers: _getCookie(headers),
+      headers: _headers,
       body: body,
       encoding: encoding,
     ));
@@ -140,39 +158,47 @@ class HttpSession implements IOClient {
   Future<String> read(
     Uri url, {
     Map<String, String>? headers,
-  }) =>
-      _httpDelegate.read(url, headers: _getCookie(headers));
+  }) {
+    Map<String, String> _headers = {
+      "Cookie": _getCookieHeader(url.host, url.path)
+    };
+    _headers.addAll(headers ?? {});
+    return _httpDelegate.read(url, headers: _headers);
+  }
 
   @override
   Future<Uint8List> readBytes(
     Uri url, {
     Map<String, String>? headers,
-  }) =>
-      _httpDelegate.readBytes(url, headers: _getCookie(headers));
-
-  /// Add cookie to the request
-  Map<String, String> _getCookie(Map<String, String>? headers) {
-    if (headers != null) {
-      headers.addAll(_headers);
-    }
-    headers ??= _headers;
-    return headers;
+  }) {
+    Map<String, String> _headers = {
+      "Cookie": _getCookieHeader(url.host, url.path)
+    };
+    _headers.addAll(headers ?? {});
+    return _httpDelegate.readBytes(url, headers: _headers);
   }
 
-  /// Update the response
-  http.Response _updateResponse(http.Response response) {
-    _updateCookieHeaders(response.headers);
-
-    return response;
+  /// Add cookie to the request
+  String _getCookieHeader(String requestDomain, String requestPath) {
+    return CookieStore.buildCookieHeader(
+        _cookieStore.getCookiesForRequest(requestDomain, requestPath));
   }
 
   /// Update the cookie
-  void _updateCookieHeaders(Map<String, String> headers) {
+  void _updateCookies(
+      Map<String, String> headers, String requestDomain, String requestPath) {
     final String? rawCookie = headers['set-cookie'];
     if (rawCookie != null) {
-      final int index = rawCookie.indexOf(';');
-      _headers['cookie'] =
-          (index == -1) ? rawCookie : rawCookie.substring(0, index);
+      _cookieStore.updateCookies(rawCookie, requestDomain, requestPath);
     }
+  }
+
+  /// Get cookies from the response and pass it along
+  Future<http.Response> _updateResponse(Future<http.Response> resp) {
+    return Future.value(resp.then((http.Response response) {
+      _updateCookies(response.headers, response.request!.url.host,
+          response.request!.url.path);
+      return response;
+    }));
   }
 }
