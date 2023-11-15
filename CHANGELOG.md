@@ -1,3 +1,8 @@
+## 0.2.0
+* Major rewrite
+* use `cookie_store` to store cookies
+* Don't miss cookies when redirecting
+
 ## 0.1.0
 
 * Update dependencies
