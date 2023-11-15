@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:http_session/http_session.dart';
 import 'package:test/test.dart';
 import 'dart:io';
