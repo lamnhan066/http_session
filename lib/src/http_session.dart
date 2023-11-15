@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -83,10 +84,13 @@ class HttpSession implements IOClient {
   }
 
   Future<http.Response> _sendRequest(String method, Uri url, int timeToLive,
-      {Map<String, String>? headers, Object? body, Encoding? encoding}) async {
+      {Map<String, String>? headers,
+      Object? body,
+      Encoding? encoding,
+      List<_RedirectInfo>? redirects}) async {
     // Make sure we're not in an infinite (or too long of a) loop
     if (--timeToLive < 0) {
-      throw RedirectException("Too many redirects!", []);
+      throw RedirectException("Too many redirects!", redirects ?? []);
     }
     // Get the cookie header for this request
     String cookieHeader = _getCookieHeader(url.host, url.path);
@@ -116,10 +120,23 @@ class HttpSession implements IOClient {
       // Also follow redirects by recursing if we see a redirect
       Future<http.Response> response =
           http.Response.fromStream(streamedResponse);
-      return response.then((newResponse) => newResponse.isRedirect
-          ? _sendRequest(method, url, timeToLive,
-              headers: headers, body: body, encoding: encoding)
-          : response);
+      return response.then((newResponse) {
+        // Add current call to the redirect chain
+        redirects = redirects ?? [];
+        if (newResponse.request == null) {
+          throw StateError(
+              "The response doesn't have a request associated with it!");
+        }
+        redirects!.add(_RedirectInfo(newResponse.statusCode,
+            newResponse.request!.method, newResponse.request!.url));
+        return newResponse.isRedirect
+            ? _sendRequest(method, url, timeToLive,
+                headers: headers,
+                body: body,
+                encoding: encoding,
+                redirects: redirects)
+            : response;
+      });
     }));
   }
 
@@ -206,4 +223,15 @@ class HttpSession implements IOClient {
       return response;
     }));
   }
+}
+
+class _RedirectInfo implements RedirectInfo {
+  @override
+  final int statusCode;
+  @override
+  final String method;
+  @override
+  final Uri location;
+  @override
+  const _RedirectInfo(this.statusCode, this.method, this.location);
 }
