@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -9,6 +11,8 @@ import 'package:cookie_store/cookie_store.dart';
 class HttpSession implements IOClient {
   /// Shared http session instance
   static final shared = HttpSession();
+
+  int maxRedirects = 15;
 
   /// Getter for the cookie store
   CookieStore get cookieStore => _cookieStore;
@@ -79,22 +83,55 @@ class HttpSession implements IOClient {
     ));
   }
 
+  Future<http.Response> _sendRequest(String method, Uri url, int timeToLive,
+      {Map<String, String>? headers, Object? body, Encoding? encoding}) async {
+    // Make sure we're not in an infinite (or too long of a) loop
+    if (--timeToLive < 0) {
+      throw RedirectException("Too many redirects!", []);
+    }
+    // Get the cookie header for this request
+    String cookieHeader = _getCookieHeader(url.host, url.path);
+    Map<String, String> headers0 = {"Cookie": cookieHeader};
+    headers0.addAll(headers ?? {});
+    // Construct request using the parameters passed in
+    final request = http.Request(method, url)
+      ..followRedirects = false
+      ..headers.addAll(headers0);
+    // Yoink, this is how the HTTP package itself does it
+    if (body != null) {
+      if (body is String) {
+        request.body = body;
+      } else if (body is List) {
+        request.bodyBytes = body.cast<int>();
+      } else if (body is Map) {
+        request.bodyFields = body.cast<String, String>();
+      } else {
+        throw ArgumentError('Invalid request body "$body".');
+      }
+    }
+    if (encoding != null) {
+      request.encoding = encoding;
+    }
+    // Return promise but pass it through _updateResponse
+    return _updateResponse(_httpDelegate.send(request).then((streamedResponse) {
+      // Also follow redirects by recursing if we see a redirect
+      Future<http.Response> response =
+          http.Response.fromStream(streamedResponse);
+      return response.then((newResponse) => newResponse.isRedirect
+          ? _sendRequest(method, url, timeToLive,
+              headers: headers, body: body, encoding: encoding)
+          : response);
+    }));
+  }
+
   @override
   Future<http.Response> get(Uri url, {Map<String, String>? headers}) async {
-    Map<String, String> headers0 = {
-      "Cookie": _getCookieHeader(url.host, url.path)
-    };
-    headers0.addAll(headers ?? {});
-    return _updateResponse(_httpDelegate.get(url, headers: headers0));
+    return _sendRequest("GET", url, maxRedirects, headers: headers);
   }
 
   @override
   Future<http.Response> head(Uri url, {Map<String, String>? headers}) async {
-    Map<String, String> headers0 = {
-      "Cookie": _getCookieHeader(url.host, url.path)
-    };
-    headers0.addAll(headers ?? {});
-    return _updateResponse(_httpDelegate.head(url, headers: headers0));
+    return _sendRequest("HEAD", url, maxRedirects, headers: headers);
   }
 
   @override
@@ -104,16 +141,8 @@ class HttpSession implements IOClient {
     Object? body,
     Encoding? encoding,
   }) async {
-    Map<String, String> headers0 = {
-      "Cookie": _getCookieHeader(url.host, url.path)
-    };
-    headers0.addAll(headers ?? {});
-    return _updateResponse(_httpDelegate.patch(
-      url,
-      headers: headers0,
-      body: body,
-      encoding: encoding,
-    ));
+    return _sendRequest("PATCH", url, maxRedirects,
+        headers: headers, body: body, encoding: encoding);
   }
 
   @override
@@ -123,16 +152,8 @@ class HttpSession implements IOClient {
     Object? body,
     Encoding? encoding,
   }) async {
-    Map<String, String> headers0 = {
-      "Cookie": _getCookieHeader(url.host, url.path)
-    };
-    headers0.addAll(headers ?? {});
-    return _updateResponse(_httpDelegate.post(
-      url,
-      headers: headers0,
-      body: body,
-      encoding: encoding,
-    ));
+    return _sendRequest("POST", url, maxRedirects,
+        headers: headers, body: body, encoding: encoding);
   }
 
   @override
@@ -142,16 +163,8 @@ class HttpSession implements IOClient {
     Object? body,
     Encoding? encoding,
   }) async {
-    Map<String, String> headers0 = {
-      "Cookie": _getCookieHeader(url.host, url.path)
-    };
-    headers0.addAll(headers ?? {});
-    return _updateResponse(_httpDelegate.put(
-      url,
-      headers: headers0,
-      body: body,
-      encoding: encoding,
-    ));
+    return _sendRequest("PUT", url, maxRedirects,
+        headers: headers, body: body, encoding: encoding);
   }
 
   @override
@@ -159,11 +172,7 @@ class HttpSession implements IOClient {
     Uri url, {
     Map<String, String>? headers,
   }) {
-    Map<String, String> headers0 = {
-      "Cookie": _getCookieHeader(url.host, url.path)
-    };
-    headers0.addAll(headers ?? {});
-    return _httpDelegate.read(url, headers: headers0);
+    return _sendRequest("GET", url, maxRedirects).then((value) => value.body);
   }
 
   @override
@@ -171,11 +180,8 @@ class HttpSession implements IOClient {
     Uri url, {
     Map<String, String>? headers,
   }) {
-    Map<String, String> headers0 = {
-      "Cookie": _getCookieHeader(url.host, url.path)
-    };
-    headers0.addAll(headers ?? {});
-    return _httpDelegate.readBytes(url, headers: headers0);
+    return _sendRequest("GET", url, maxRedirects)
+        .then((value) => value.bodyBytes);
   }
 
   /// Add cookie to the request
