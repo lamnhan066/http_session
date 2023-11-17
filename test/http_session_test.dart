@@ -126,8 +126,7 @@ void main() async {
     test('HEAD', () async {
       Response response = await session.head(Uri.parse("$testURL/httpdetails"));
       String str = response.body;
-      Object respObj = jsonDecode(str);
-      expect(respObj, {'method': 'HEAD', 'path': "/httpdetails", 'body': ''});
-    }, skip: "Test server doesn't currently support HEAD requests");
+      expect(str.isEmpty, true);
+    });
   });
 }
