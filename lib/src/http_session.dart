@@ -63,25 +63,6 @@ class HttpSession implements IOClient {
     }));
   }
 
-  @override
-  Future<http.Response> delete(
-    Uri url, {
-    Map<String, String>? headers,
-    Object? body,
-    Encoding? encoding,
-  }) async {
-    Map<String, String> headers0 = {
-      "Cookie": _getCookieHeader(url.host, url.path)
-    };
-    headers0.addAll(headers ?? {});
-    return _updateResponse(_httpDelegate.delete(
-      url,
-      headers: headers0,
-      body: body,
-      encoding: encoding,
-    ));
-  }
-
   Future<http.Response> _sendRequest(String method, Uri url, int timeToLive,
       {Map<String, String>? headers,
       Object? body,
@@ -137,6 +118,17 @@ class HttpSession implements IOClient {
             : response;
       });
     }));
+  }
+
+  @override
+  Future<http.Response> delete(
+    Uri url, {
+    Map<String, String>? headers,
+    Object? body,
+    Encoding? encoding,
+  }) async {
+    return _sendRequest("POST", url, maxRedirects,
+        headers: headers, body: body, encoding: encoding);
   }
 
   @override
