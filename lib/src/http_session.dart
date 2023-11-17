@@ -11,13 +11,13 @@ class HttpSession implements IOClient {
   /// Shared http session instance
   static final shared = HttpSession();
 
-  int maxRedirects = 15;
+  int maxRedirects;
 
   /// Getter for the cookie store
   CookieStore get cookieStore => _cookieStore;
 
   /// Create a new http session instance
-  HttpSession() {
+  HttpSession({this.maxRedirects = 15}) {
     _httpDelegate = _ioClient();
     _cookieStore = CookieStore();
   }
