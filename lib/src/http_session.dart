@@ -127,7 +127,7 @@ class HttpSession implements IOClient {
     Object? body,
     Encoding? encoding,
   }) async {
-    return _sendRequest("POST", url, maxRedirects,
+    return _sendRequest("DELETE", url, maxRedirects,
         headers: headers, body: body, encoding: encoding);
   }
 
