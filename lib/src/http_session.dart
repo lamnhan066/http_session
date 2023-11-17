@@ -63,13 +63,13 @@ class HttpSession implements IOClient {
     }));
   }
 
-  Future<http.Response> _sendRequest(String method, Uri url, int timeToLive,
+  Future<http.Response> _sendRequest(String method, Uri url, int numRecurseLeft,
       {Map<String, String>? headers,
       Object? body,
       Encoding? encoding,
       List<_RedirectInfo>? redirects}) async {
     // Make sure we're not in an infinite (or too long of a) loop
-    if (--timeToLive < 0) {
+    if (--numRecurseLeft < 0) {
       throw RedirectException("Too many redirects!", redirects ?? []);
     }
     // Get the cookie header for this request
@@ -110,7 +110,7 @@ class HttpSession implements IOClient {
         redirects!.add(_RedirectInfo(newResponse.statusCode,
             newResponse.request!.method, newResponse.request!.url));
         return newResponse.isRedirect
-            ? _sendRequest(method, url, timeToLive,
+            ? _sendRequest(method, url, numRecurseLeft,
                 headers: headers,
                 body: body,
                 encoding: encoding,
