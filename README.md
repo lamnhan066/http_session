@@ -39,8 +39,12 @@ Close the current http and also clear the session
 httpSession.close();
 ```
 
-Get current session headers:
+If you would like to access current cookie store directly, you can do so:
 
 ``` dart
-final headers = httpSession.headers;
+import 'package:cookie_store/cookie_store.dart';
+final List<Cookie> cookies = httpSession.cookieStore;
 ```
+
+See the [cookie_store documentation](https://github.com/egefeyzioglu/cookie_store)
+for details of the `Cookie` class.
