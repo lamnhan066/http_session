@@ -16,8 +16,11 @@ class HttpSession implements IOClient {
   /// Getter for the cookie store
   CookieStore get cookieStore => _cookieStore;
 
+  /// Accept bad server certificates. This should not be set in production
+  final bool acceptBadCertificate;
+
   /// Create a new http session instance
-  HttpSession({this.maxRedirects = 15}) {
+  HttpSession({this.acceptBadCertificate = false, this.maxRedirects = 15}) {
     _httpDelegate = _ioClient();
     _cookieStore = CookieStore();
   }
@@ -26,10 +29,11 @@ class HttpSession implements IOClient {
   late CookieStore _cookieStore;
 
   /// Avoid badCertificate error
-  IOClient _ioClient() {
-    final HttpClient ioc = HttpClient();
-    ioc.badCertificateCallback =
-        (X509Certificate cert, String host, int port) => true;
+  IOClient _ioClient([HttpClient? client]) {
+    final HttpClient ioc = client ?? HttpClient()
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => acceptBadCertificate;
+
     return IOClient(ioc);
   }
 
