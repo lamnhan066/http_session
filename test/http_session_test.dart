@@ -88,7 +88,8 @@ void main() async {
   test("Test that we don't send cookies when we shouldn't", () {
     session.clear();
     session.get(Uri.parse("$testURL/gimmecookies?name=foo&value=bar"));
-    expect([], session.cookieStore.getCookiesForRequest(testURL, "/somethingelse"));
+    expect([],
+        session.cookieStore.getCookiesForRequest(testURL, "/somethingelse"));
   });
   group('Test HTTP requests being sent correctly -', () {
     test('GET', () async {
@@ -124,9 +125,14 @@ void main() async {
       expect(respObj, {'method': 'PUT', 'path': "/httpdetails", 'body': ''});
     });
     test('HEAD', () async {
+      // Check that we're not getting a body back
       Response response = await session.head(Uri.parse("$testURL/httpdetails"));
       String str = response.body;
       expect(str.isEmpty, true);
+      // Check that we are getting the headers back
+      response = await session
+          .head(Uri.parse("$testURL/gimmecookies?name=foo&value=bar"));
+      expect(session.cookieStore.cookies.length, 1);
     });
   });
 }
