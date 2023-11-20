@@ -2,6 +2,7 @@
 * Major rewrite
 * use `cookie_store` to store cookies
 * Don't miss cookies when redirecting
+* Solved a variety of security problems
 
 ## 0.1.0
 
