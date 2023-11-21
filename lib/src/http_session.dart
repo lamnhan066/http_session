@@ -3,23 +3,24 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:cookie_store/cookie_store.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
-import 'package:cookie_store/cookie_store.dart';
 
 class HttpSession implements IOClient {
-  /// Shared http session instance
+  /// Shared http session instance.
   static final shared = HttpSession();
 
+  /// Set maximum number of redirects.
   int maxRedirects;
 
-  /// Getter for the cookie store
+  /// Getter for the cookie store.
   CookieStore get cookieStore => _cookieStore;
 
-  /// Accept bad server certificates. This should not be set in production
+  /// Accept bad server certificates. This should NOT be set in production.
   final bool acceptBadCertificate;
 
-  /// Create a new http session instance
+  /// Create a new http session instance.
   HttpSession({this.acceptBadCertificate = false, this.maxRedirects = 15}) {
     _httpDelegate = _ioClient();
     _cookieStore = CookieStore();
@@ -28,7 +29,7 @@ class HttpSession implements IOClient {
   late IOClient _httpDelegate;
   late CookieStore _cookieStore;
 
-  /// Avoid badCertificate error
+  /// Avoid badCertificate error.
   IOClient _ioClient([HttpClient? client]) {
     final HttpClient ioc = client ?? HttpClient()
       ..badCertificateCallback =
@@ -37,7 +38,7 @@ class HttpSession implements IOClient {
     return IOClient(ioc);
   }
 
-  /// Clear the current session
+  /// Clear the current session.
   void clear() {
     _cookieStore.reduceSize(0, true);
   }
@@ -99,13 +100,13 @@ class HttpSession implements IOClient {
     if (encoding != null) {
       request.encoding = encoding;
     }
-    // Return promise but pass it through _updateResponse
+    // Return promise but pass it through _updateResponse.
     return _updateResponse(_httpDelegate.send(request).then((streamedResponse) {
-      // Also follow redirects by recursing if we see a redirect
+      // Also follow redirects by recursing if we see a redirect.
       Future<http.Response> response =
           http.Response.fromStream(streamedResponse);
       return response.then((newResponse) {
-        // Add current call to the redirect chain
+        // Add current call to the redirect chain.
         redirects = redirects ?? [];
         if (newResponse.request == null) {
           throw StateError(
@@ -195,13 +196,13 @@ class HttpSession implements IOClient {
         .then((value) => value.bodyBytes);
   }
 
-  /// Add cookie to the request
+  /// Add cookie to the request.
   String _getCookieHeader(String requestDomain, String requestPath) {
     return CookieStore.buildCookieHeader(
         _cookieStore.getCookiesForRequest(requestDomain, requestPath));
   }
 
-  /// Update the cookie
+  /// Update the cookie.
   void _updateCookies(
       Map<String, String> headers, String requestDomain, String requestPath) {
     final String? rawCookie = headers['set-cookie'];
@@ -210,7 +211,7 @@ class HttpSession implements IOClient {
     }
   }
 
-  /// Get cookies from the response and pass it along
+  /// Get cookies from the response and pass it along.
   Future<http.Response> _updateResponse(Future<http.Response> resp) {
     return Future.value(resp.then((http.Response response) {
       _updateCookies(response.headers, response.request!.url.host,
