@@ -1,8 +1,8 @@
-import 'package:http_session/http_session.dart';
-import 'package:test/test.dart';
-
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:http_session/http_session.dart';
+import 'package:test/test.dart';
 
 const int testPort = 8888;
 const testURL = 'http://localhost:$testPort';
@@ -63,6 +63,7 @@ void main() async {
       response.close();
     });
   });
+
   tearDownAll(
     () async {
       try {
@@ -74,6 +75,7 @@ void main() async {
       }
     },
   );
+
   test('Test that we can save cookies', () async {
     ///TODO: Minimal test, expand
     session.clear();
@@ -85,12 +87,14 @@ void main() async {
     session.clear();
     expect(session.cookieStore.cookies.length, 0);
   });
+
   test("Test that we don't send cookies when we shouldn't", () {
     session.clear();
     session.get(Uri.parse("$testURL/gimmecookies?name=foo&value=bar"));
     expect([],
         session.cookieStore.getCookiesForRequest(testURL, "/somethingelse"));
   });
+
   group('Test HTTP requests being sent correctly -', () {
     test('GET', () async {
       Response response = await session.get(Uri.parse("$testURL/httpdetails"));
@@ -98,12 +102,14 @@ void main() async {
       Object respObj = jsonDecode(str);
       expect(respObj, {'method': 'GET', 'path': "/httpdetails", 'body': ''});
     });
+
     test('POST', () async {
       Response response = await session.post(Uri.parse("$testURL/httpdetails"));
       String str = response.body;
       Object respObj = jsonDecode(str);
       expect(respObj, {'method': 'POST', 'path': "/httpdetails", 'body': ''});
     });
+
     test('DELETE', () async {
       Response response =
           await session.delete(Uri.parse("$testURL/httpdetails"));
@@ -111,6 +117,7 @@ void main() async {
       Object respObj = jsonDecode(str);
       expect(respObj, {'method': 'DELETE', 'path': "/httpdetails", 'body': ''});
     });
+
     test('PATCH', () async {
       Response response =
           await session.patch(Uri.parse("$testURL/httpdetails"));
@@ -118,12 +125,14 @@ void main() async {
       Object respObj = jsonDecode(str);
       expect(respObj, {'method': 'PATCH', 'path': "/httpdetails", 'body': ''});
     });
+
     test('PUT', () async {
       Response response = await session.put(Uri.parse("$testURL/httpdetails"));
       String str = response.body;
       Object respObj = jsonDecode(str);
       expect(respObj, {'method': 'PUT', 'path': "/httpdetails", 'body': ''});
     });
+
     test('HEAD', () async {
       // Check that we're not getting a body back
       Response response = await session.head(Uri.parse("$testURL/httpdetails"));
