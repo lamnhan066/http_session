@@ -1,6 +1,6 @@
 name: http_session
 description: This plugin helps you easier to manage the sessions when using http to requests.
-version: 0.1.0
+version: 0.2.0
 homepage: https://github.com/vnniz/http_session
 
 environment:
@@ -8,6 +8,7 @@ environment:
 
 dependencies:
   http: ^1.1.0
+  cookie_store: ^0.3.2
 
 dev_dependencies:
   lints: ^2.0.0
