@@ -1,7 +1,7 @@
 name: http_session
 description: This plugin helps you easier to manage the sessions when using http to requests.
 version: 0.2.0
-homepage: https://github.com/vnniz/http_session
+homepage: https://github.com/lamnhan066/http_session
 
 environment:
   sdk: ">=2.18.0 <4.0.0"
