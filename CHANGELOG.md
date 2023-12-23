@@ -1,3 +1,9 @@
+## 0.2.1
+
+* Handle redirects correctly.
+* Add tests for redirects.
+* Update dependencies to the latest versions.
+
 ## 0.2.0
 
 **Thanks @egefeyzioglu for this major update.**
