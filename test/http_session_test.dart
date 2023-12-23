@@ -50,7 +50,10 @@ void main() async {
       } else if (uri.path == "/longRedirectLoop2") {
         // /longRedirectLoop2
         response.statusCode = 302;
-        response.headers.add("Location", "/longRedirectLoop1");
+        response.redirect(uri.resolveUri(Uri.parse('/longRedirectLoop1')));
+      } else if (uri.path == "/redirectToHttpDetails") {
+        response.statusCode = 302;
+        response.headers.add("Location", "/httpdetails");
       } else if (uri.path == "/httpdetails") {
         String content = await utf8.decodeStream(request);
         response.writeln(jsonEncode(
@@ -142,6 +145,50 @@ void main() async {
       response = await session
           .head(Uri.parse("$testURL/gimmecookies?name=foo&value=bar"));
       expect(session.cookieStore.cookies.length, 1);
+    });
+  });
+
+  group('Test that we handle the redirect correctly -', () {
+    test('redirect from `/redirectToHttpDetails` to `/httpdetails`', () async {
+      final redirectUrl = Uri.parse('$testURL/redirectToHttpDetails');
+      final response = await session.get(redirectUrl);
+
+      expect(response.statusCode, equals(200));
+      expect(response.request!.url.path, equals('/httpdetails'));
+    });
+
+    test('redirect loop in one loop', () async {
+      final redirectUrl = Uri.parse('$testURL/redirectLoop');
+
+      expect(
+        () async {
+          await session.get(redirectUrl);
+        },
+        throwsA(
+          isA<RedirectException>().having(
+            (e) => e.redirects.map((e) => e.location.path),
+            'redirects',
+            containsAll(['/redirectLoop']),
+          ),
+        ),
+      );
+    });
+
+    test('redirect between two loops', () async {
+      final redirectUrl = Uri.parse('$testURL/longRedirectLoop1');
+
+      expect(
+        () async {
+          await session.get(redirectUrl);
+        },
+        throwsA(
+          isA<RedirectException>().having(
+            (e) => e.redirects.map((e) => e.location.path),
+            'redirects',
+            containsAll(['/longRedirectLoop2', '/longRedirectLoop1']),
+          ),
+        ),
+      );
     });
   });
 }
