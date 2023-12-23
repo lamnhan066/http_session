@@ -7,6 +7,17 @@ import 'package:cookie_store/cookie_store.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
 
+class _RedirectInfo implements RedirectInfo {
+  @override
+  final int statusCode;
+  @override
+  final String method;
+  @override
+  final Uri location;
+  @override
+  const _RedirectInfo(this.statusCode, this.method, this.location);
+}
+
 class HttpSession implements IOClient {
   /// Shared http session instance.
   static final shared = HttpSession();
@@ -77,14 +88,17 @@ class HttpSession implements IOClient {
     if (--numRecurseLeft < 0) {
       throw RedirectException("Too many redirects!", redirects ?? []);
     }
+
     // Get the cookie header for this request
     String cookieHeader = _getCookieHeader(url.host, url.path);
     Map<String, String> headers0 = {"Cookie": cookieHeader};
     headers0.addAll(headers ?? {});
+
     // Construct request using the parameters passed in
     final request = http.Request(method, url)
       ..followRedirects = false
       ..headers.addAll(headers0);
+
     // Yoink, this is how the HTTP package itself does it
     if (body != null) {
       if (body is String) {
@@ -103,8 +117,7 @@ class HttpSession implements IOClient {
     // Return promise but pass it through _updateResponse.
     return _updateResponse(_httpDelegate.send(request).then((streamedResponse) {
       // Also follow redirects by recursing if we see a redirect.
-      Future<http.Response> response =
-          http.Response.fromStream(streamedResponse);
+      final response = http.Response.fromStream(streamedResponse);
       return response.then((newResponse) {
         // Add current call to the redirect chain.
         redirects = redirects ?? [];
@@ -112,15 +125,40 @@ class HttpSession implements IOClient {
           throw StateError(
               "The response doesn't have a request associated with it!");
         }
-        redirects!.add(_RedirectInfo(newResponse.statusCode,
-            newResponse.request!.method, newResponse.request!.url));
-        return newResponse.isRedirect
-            ? _sendRequest(method, url, numRecurseLeft,
-                headers: headers,
-                body: body,
-                encoding: encoding,
-                redirects: redirects)
-            : response;
+        final redirectInfo = _RedirectInfo(
+          newResponse.statusCode,
+          newResponse.request!.method,
+          newResponse.request!.url,
+        );
+        redirects!.add(redirectInfo);
+        final String? location = newResponse.headers['location'];
+        if (newResponse.isRedirect) {
+          if (location != null) {
+            final redirectUri = Uri.parse(location);
+            final resolvedUri = redirectInfo.location.resolveUri(redirectUri);
+            return _sendRequest(
+              redirectInfo.method,
+              resolvedUri,
+              numRecurseLeft,
+              headers: headers,
+              body: body,
+              encoding: encoding,
+              redirects: redirects,
+            );
+          } else {
+            return _sendRequest(
+              redirectInfo.method,
+              redirectInfo.location,
+              numRecurseLeft,
+              headers: headers,
+              body: body,
+              encoding: encoding,
+              redirects: redirects,
+            );
+          }
+        }
+
+        return response;
       });
     }));
   }
@@ -219,15 +257,4 @@ class HttpSession implements IOClient {
       return response;
     }));
   }
-}
-
-class _RedirectInfo implements RedirectInfo {
-  @override
-  final int statusCode;
-  @override
-  final String method;
-  @override
-  final Uri location;
-  @override
-  const _RedirectInfo(this.statusCode, this.method, this.location);
 }
