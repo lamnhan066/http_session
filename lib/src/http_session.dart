@@ -65,12 +65,12 @@ class HttpSession implements IOClient {
     http.BaseRequest request,
   ) {
     final tempRequest = request;
-    request.headers['Cookie'] = CookieStore.buildCookieHeader(
+    request.headers[HttpHeaders.cookieHeader] = CookieStore.buildCookieHeader(
         _cookieStore.getCookiesForRequest(request.url.host, request.url.path));
 
     final result = _httpDelegate.send(tempRequest);
     return Future.value(result.then((result) {
-      String? setCookie = result.headers["Set-Cookie"];
+      String? setCookie = result.headers[HttpHeaders.setCookieHeader];
       if (setCookie != null) {
         _cookieStore.updateCookies(
             setCookie, request.url.host, request.url.path);
@@ -91,7 +91,7 @@ class HttpSession implements IOClient {
 
     // Get the cookie header for this request
     String cookieHeader = _getCookieHeader(url.host, url.path);
-    Map<String, String> headers0 = {"Cookie": cookieHeader};
+    Map<String, String> headers0 = {HttpHeaders.cookieHeader: cookieHeader};
     headers0.addAll(headers ?? {});
 
     // Construct request using the parameters passed in
@@ -114,53 +114,43 @@ class HttpSession implements IOClient {
     if (encoding != null) {
       request.encoding = encoding;
     }
-    // Return promise but pass it through _updateResponse.
-    return _updateResponse(_httpDelegate.send(request).then((streamedResponse) {
-      // Also follow redirects by recursing if we see a redirect.
-      final response = http.Response.fromStream(streamedResponse);
-      return response.then((newResponse) {
-        // Add current call to the redirect chain.
-        redirects = redirects ?? [];
-        if (newResponse.request == null) {
-          throw StateError(
-              "The response doesn't have a request associated with it!");
-        }
-        final redirectInfo = _RedirectInfo(
-          newResponse.statusCode,
-          newResponse.request!.method,
-          newResponse.request!.url,
-        );
-        redirects!.add(redirectInfo);
-        final String? location = newResponse.headers['location'];
-        if (newResponse.isRedirect) {
-          if (location != null) {
-            final redirectUri = Uri.parse(location);
-            final resolvedUri = redirectInfo.location.resolveUri(redirectUri);
-            return _sendRequest(
-              redirectInfo.method,
-              resolvedUri,
-              numRecurseLeft,
-              headers: headers,
-              body: body,
-              encoding: encoding,
-              redirects: redirects,
-            );
-          } else {
-            return _sendRequest(
-              redirectInfo.method,
-              redirectInfo.location,
-              numRecurseLeft,
-              headers: headers,
-              body: body,
-              encoding: encoding,
-              redirects: redirects,
-            );
-          }
-        }
 
-        return response;
-      });
-    }));
+    // Send the request and handle the response
+    final streamedResponse = await send(request);
+    final newResponse = await http.Response.fromStream(streamedResponse);
+
+    // Add current call to the redirect chain
+    redirects = redirects ?? [];
+    final redirectInfo = _RedirectInfo(
+      newResponse.statusCode,
+      newResponse.request!.method,
+      newResponse.request!.url,
+    );
+    redirects.add(redirectInfo);
+
+    // Handle redirection
+    if (newResponse.isRedirect) {
+      final String? location = newResponse.headers[HttpHeaders.locationHeader];
+      if (location != null) {
+        final redirectUri = Uri.parse(location);
+        final resolvedUri = url.resolveUri(redirectUri);
+
+        // Recursively call the same method to follow the redirect
+        return _sendRequest(
+          method, // Keep the original method unless you have specific reasons to change it
+          resolvedUri,
+          numRecurseLeft,
+          headers:
+              request.headers, // Ensure we carry over cookies and other headers
+          body: body,
+          encoding: encoding,
+          redirects: redirects,
+        );
+      }
+    }
+
+    // If not a redirect or once redirection is resolved, update and return the response
+    return newResponse;
   }
 
   @override
@@ -238,23 +228,5 @@ class HttpSession implements IOClient {
   String _getCookieHeader(String requestDomain, String requestPath) {
     return CookieStore.buildCookieHeader(
         _cookieStore.getCookiesForRequest(requestDomain, requestPath));
-  }
-
-  /// Update the cookie.
-  void _updateCookies(
-      Map<String, String> headers, String requestDomain, String requestPath) {
-    final String? rawCookie = headers['set-cookie'];
-    if (rawCookie != null) {
-      _cookieStore.updateCookies(rawCookie, requestDomain, requestPath);
-    }
-  }
-
-  /// Get cookies from the response and pass it along.
-  Future<http.Response> _updateResponse(Future<http.Response> resp) {
-    return Future.value(resp.then((http.Response response) {
-      _updateCookies(response.headers, response.request!.url.host,
-          response.request!.url.path);
-      return response;
-    }));
   }
 }
