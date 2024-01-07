@@ -1,3 +1,8 @@
+## 0.2.2
+
+* Improved redirect handling.
+* Used `HttpHeaders` static class text to improve reliability.
+
 ## 0.2.1
 
 * Handle redirects correctly.
