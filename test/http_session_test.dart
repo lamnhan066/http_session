@@ -26,7 +26,7 @@ void main() async {
         if (uri.queryParameters.containsKey("name") &&
             uri.queryParameters.containsKey("value")) {
           // ?name=<name of cookie>&value=<value of cookie>
-          response.headers.add("Set-Cookie",
+          response.headers.add(HttpHeaders.setCookieHeader,
               "${uri.queryParameters['name']}=${uri.queryParameters['value']}");
         } else if (uri.queryParameters.containsKey("num")) {
           // num=<how many cookies to set>
@@ -34,7 +34,7 @@ void main() async {
           for (var i = 0; i < int.parse(uri.queryParameters["num"]!); i++) {
             cookies.add("test$i=true");
           }
-          response.headers.add("Set-Cookie", cookies.join(","));
+          response.headers.add(HttpHeaders.setCookieHeader, cookies.join(","));
         } else {
           response.statusCode = 400;
           response.reasonPhrase = "Bad Request";
@@ -42,18 +42,18 @@ void main() async {
       } else if (uri.path == "/redirectLoop") {
         // /redirectLoop
         response.statusCode = 302;
-        response.headers.add("Location", "/redirectLoop");
+        response.headers.add(HttpHeaders.locationHeader, "/redirectLoop");
       } else if (uri.path == "/longRedirectLoop1") {
         // /longRedirectLoop1
         response.statusCode = 302;
-        response.headers.add("Location", "/longRedirectLoop2");
+        response.headers.add(HttpHeaders.locationHeader, "/longRedirectLoop2");
       } else if (uri.path == "/longRedirectLoop2") {
         // /longRedirectLoop2
         response.statusCode = 302;
         response.redirect(uri.resolveUri(Uri.parse('/longRedirectLoop1')));
       } else if (uri.path == "/redirectToHttpDetails") {
         response.statusCode = 302;
-        response.headers.add("Location", "/httpdetails");
+        response.headers.add(HttpHeaders.locationHeader, "/httpdetails");
       } else if (uri.path == "/httpdetails") {
         String content = await utf8.decodeStream(request);
         response.writeln(jsonEncode(
